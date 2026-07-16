@@ -143,10 +143,21 @@
   .btn.tg{background:#2AABEE;border-color:var(--ink);color:#fff;box-shadow:4px 4px 0 var(--ink)}
   .btn.tg:hover{background:#1e96d6}
   .btn.tg:disabled{background:var(--line);color:#fff;box-shadow:none}
+  .strow{display:flex;gap:8px;margin-top:8px}
+  .strow .btn{margin-top:0;flex:1;padding:11px 6px;font-size:clamp(10px,2.7vw,12px)}
+  .btn.sk{background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--line)}
+  .btn.sk:hover{background:var(--paper2)}
+  .btn.sus{background:#fff;color:var(--warn);border-color:var(--warn);box-shadow:3px 3px 0 var(--warn)}
+  .btn.sus:hover{background:#fbeee8}
   .odo.over span{color:#FF6B4A}
   .odo.over span.dot,.odo.over span.u{color:#FF6B4A}
   .item .r.bad{color:var(--warn)}
   .item .st{font-size:13px;flex-shrink:0;line-height:1}
+  .item.skipitem{background:var(--paper2);padding-left:6px;padding-right:6px}
+  .sklbl{flex:1;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);
+    font-family:Consolas,monospace;text-align:right}
+  .sklbl.sus{color:var(--warn)}
+  .drop .tick.tsus{color:var(--warn)}
   .tools{display:flex;gap:8px;margin-top:16px;border-top:2px solid var(--line);padding-top:10px}
   .tools button{flex:1;padding:9px 4px;background:none;border:2px solid var(--line);
     font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.06em;
@@ -209,11 +220,15 @@
     </div>
 
     <button class="btn" id="saveBtn" disabled>Saqlash · Enter</button>
+    <div class="strow hide" id="strow">
+      <button class="btn sk" id="skipBtn" type="button">⛔ Gaz olmagan</button>
+      <button class="btn sus" id="susBtn" type="button">⚠️ Shubhali</button>
+    </div>
   </div>
 
   <div class="today">
     <div class="th">
-      <h2>Bugun olganlar</h2>
+      <h2>Bugungi ro'yxat</h2>
       <span class="cnt" id="cnt">0</span>
     </div>
     <div id="list"></div>
@@ -312,7 +327,7 @@ function openDrop(q=""){
     return `${first?'<div class="sep">bugun kiritilgan</div>':""}<div class="${i===hi?"on":""}${done?" dim":""}" data-i="${i}">
       <span class="p">${p}</span>
       <span class="n">${n||m}</span>
-      ${done?`<span class="tick">${done.res} m³ ✓</span>`:""}
+      ${done?`<span class="tick${done.skip==="shubhali"?" tsus":""}">${done.skip?(done.skip==="shubhali"?"⚠️ shubhali":"⛔ olmagan"):done.res+" m³ ✓"}</span>`:""}
     </div>`}).join("");
   d.classList.remove("hide");
   d.querySelectorAll("div[data-i]").forEach(el=>{
@@ -339,16 +354,18 @@ function choose(plate){
 
   const r=rec(plate);
   const done=todayRec(plate);
+  const isSkip=done&&done.skip;
 
-  if(done){                     // already recorded today -> load for edit
+  if(done&&!isSkip){            // already recorded today -> load for edit
     $("prev").value=done.prev; $("cur").value=done.cur; $("gas").value=done.gas;
   }else{
     $("cur").value=""; $("gas").value="";
     $("prev").value = r.last!==null ? r.last : "";
   }
-  lockPrev(r.last!==null && !done);
+  lockPrev(r.last!==null && !(done&&!isSkip));
   $("editBtn").classList.toggle("hide", r.last===null);
   $("clrBtn").classList.remove("hide");
+  $("strow").classList.remove("hide");
   calc();
   ($("prev").disabled?$("cur"):$("prev")).focus();
 }
@@ -360,6 +377,7 @@ function resetForm(openList){
   lockPrev(false);
   $("editBtn").classList.add("hide");
   $("clrBtn").classList.add("hide");
+  $("strow").classList.add("hide");
   calc();
   if(openList){ $("pick").focus(); openDrop(""); }
 }
@@ -421,24 +439,46 @@ function doSave(){
   renderToday();
   resetForm(true);
 }
+/* holat bilan belgilash: 'olmagan' | 'shubhali' — probeg saqlanmaydi */
+function doSkip(kind){
+  if(!sel)return;
+  const r=rec(sel);
+  const entry={d:TODAY,skip:kind};
+  const i=r.log.findIndex(x=>x.d===TODAY);
+  if(i>=0)r.log[i]=entry; else r.log.unshift(entry);
+  // r.last O'ZGARMAYDI — oxirgi haqiqiy probeg saqlanib qoladi
+  save();
+  renderToday();
+  resetForm(true);
+}
+/* eng oxirgi haqiqiy (raqamli) yozuvdan probegni topish */
+function lastCur(r){
+  const e=r.log.find(x=>!x.skip);
+  return e?e.cur:null;
+}
 
 /* ---------- today list ---------- */
 function todayRows(){
-  const out=[];
+  const nums=[],skips=[];
   for(const [p] of TRUCKS){
     const e=todayRec(p);
-    if(e)out.push({p,res:e.res,dist:e.dist,gas:e.gas});
+    if(!e)continue;
+    if(e.skip)skips.push({p,skip:e.skip});
+    else nums.push({p,res:e.res,dist:e.dist,gas:e.gas});
   }
-  return out.sort((a,b)=>a.res-b.res);   // kichikdan kattaga
+  nums.sort((a,b)=>a.res-b.res);   // kichikdan kattaga
+  // shubhalilar olmaganlardan oldin — ular muhimroq
+  skips.sort((a,b)=>(a.skip==="shubhali"?0:1)-(b.skip==="shubhali"?0:1));
+  return {nums,skips,total:nums.length+skips.length};
 }
 function renderToday(){
-  const rows=todayRows();
-  $("cnt").textContent=rows.length;
-  $("txtBtn").disabled=!rows.length;
-  $("tgBtn").disabled=!rows.length;
+  const {nums,skips,total}=todayRows();
+  $("cnt").textContent=total;
+  $("txtBtn").disabled=!total;
+  $("tgBtn").disabled=!total;
   const box=$("list");
-  if(!rows.length){box.innerHTML='<div class="empty">Hali yozuv yo\'q.</div>';return}
-  box.innerHTML=rows.map(r=>{
+  if(!total){box.innerHTML='<div class="empty">Hali yozuv yo\'q.</div>';return}
+  const numHtml=nums.map(r=>{
     const over=r.res>norm(r.p);
     return `<div class="item">
     <span class="p">${r.p}${label(r.p)}</span>
@@ -447,12 +487,18 @@ function renderToday(){
     <span class="m">${fmt(r.dist)} km · ${fmt(r.gas)} m³</span>
     <button class="x" data-p="${r.p}" title="O'chirish">✕</button>
   </div>`}).join("");
+  const skipHtml=skips.map(r=>`<div class="item skipitem">
+    <span class="p">${r.p}${label(r.p)}</span>
+    <span class="sklbl${r.skip==="shubhali"?" sus":""}">${r.skip==="shubhali"?"⚠️ SHUBHALI":"⛔ GAZ OLMAGAN"}</span>
+    <button class="x" data-p="${r.p}" title="O'chirish">✕</button>
+  </div>`).join("");
+  box.innerHTML=numHtml+skipHtml;
   box.querySelectorAll(".x").forEach(b=>b.onclick=()=>{
     const p=b.dataset.p;
     if(!confirm(p+" — bugungi yozuv o'chirilsinmi?"))return;
     const r=rec(p);
     r.log=r.log.filter(x=>x.d!==TODAY);
-    r.last=r.log.length?r.log[0].cur:null;
+    r.last=lastCur(r);
     save(); renderToday();
     if(sel===p)choose(p);
   });
@@ -460,12 +506,18 @@ function renderToday(){
 
 /* ---------- TXT ---------- */
 function buildTxt(){
-  const rows=todayRows();
-  return "TONARLAR GAZ RASXOD "+TODAY+"\n\n"+
-    rows.map(r=>{
+  const {nums,skips}=todayRows();
+  let out="TONARLAR GAZ RASXOD "+TODAY+"\n\n"+
+    nums.map(r=>{
       const over=r.res>norm(r.p);
       return r.p+label(r.p)+" - "+r.res+"  m³ "+(over?"🔴":"✅");
-    }).join("\n\n")+"\n";
+    }).join("\n\n");
+  if(skips.length){
+    out+="\n\n"+skips.map(r=>
+      r.p+label(r.p)+" - "+(r.skip==="shubhali"?"SHUBHALI ⚠️":"GAZ OLMAGAN ⛔")
+    ).join("\n\n");
+  }
+  return out+"\n";
 }
 function doTxt(){
   const blob=new Blob([buildTxt()],{type:"text/plain;charset=utf-8"});
@@ -554,6 +606,8 @@ $("editBtn").onclick=()=>{
   if(!$("saveBtn").disabled)doSave();
 });
 $("saveBtn").onclick=doSave;
+$("skipBtn").onclick=()=>doSkip("olmagan");
+$("susBtn").onclick=()=>doSkip("shubhali");
 $("txtBtn").onclick=doTxt;
 $("tgBtn").onclick=doShare;
 $("expBtn").onclick=doExp;
