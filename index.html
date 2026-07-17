@@ -370,7 +370,8 @@ function choose(plate){
   const isSkip=done&&done.skip;
 
   if(done&&!isSkip){            // already recorded today -> load for edit
-    $("prev").value=done.prev; $("cur").value=done.cur; $("gas").value=done.gas;
+    $("prev").value=done.prev; $("cur").value=done.cur;
+    $("gas").value=done.graw||done.gas;
   }else{
     $("cur").value=""; $("gas").value="";
     $("prev").value = r.last!==null ? r.last : "";
@@ -412,15 +413,29 @@ function setOdo(txt,over){
   u.className="u"; u.textContent="m³";
   b.appendChild(u);
 }
+/* gaz: "120+95,5+87" ko'rinishini yig'ib hisoblash.
+   Yozish davomida oxirgi bo'sh "+" e'tiborga olinmaydi. */
+function gasNum(v){
+  const parts=String(v).split("+").map(s=>s.trim()).filter(s=>s!=="");
+  if(!parts.length)return NaN;
+  let sum=0;
+  for(const s of parts){
+    const n=num(s);
+    if(isNaN(n))return NaN;
+    sum+=n;
+  }
+  return sum;
+}
 function calc(){
-  const p=num($("prev").value),c=num($("cur").value),g=num($("gas").value);
+  const a=num($("prev").value),b=num($("cur").value),g=gasNum($("gas").value);
   const bd=$("bd"); bd.classList.remove("err");
-  if(!sel||isNaN(p)||isNaN(c)||isNaN(g)){
+  if(!sel||isNaN(a)||isNaN(b)||isNaN(g)){
     setOdo("0"); bd.textContent="yo'l: —"; $("saveBtn").disabled=true; return null;
   }
-  const dist=c-p;
+  // tartib ahamiyatsiz: farqning moduli olinadi
+  const dist=Math.abs(b-a);
   if(dist<=0){
-    setOdo("0"); bd.textContent="hozirgi probeg katta bo'lsin"; bd.classList.add("err");
+    setOdo("0"); bd.textContent="ikkala probeg teng — farq yo'q"; bd.classList.add("err");
     $("saveBtn").disabled=true; return null;
   }
   if(g<=0){
@@ -430,22 +445,23 @@ function calc(){
   const res=g/dist*100;
   const over=Math.round(res)>norm(sel);
   setOdo(res.toFixed(0),over);
-  bd.textContent=`yo'l ${fmt(dist)} km · gaz ${fmt(g)} m³`+
+  const multi=$("gas").value.includes("+");
+  bd.textContent=`yo'l ${fmt(dist)} km · gaz ${multi?$("gas").value.replace(/\s/g,"")+" = ":""}${fmt(g)} m³`+
     (over?` — NORMA ${norm(sel)} DAN OSHDI!`:"");
   bd.classList.toggle("err",over);
   $("saveBtn").disabled=false;
   $("saveBtn").textContent=(todayRec(sel)?"Yangilash":"Saqlash")+" · Enter";
-  return {prev:p,cur:c,gas:g,dist,res};
+  return {prev:Math.min(a,b),cur:Math.max(a,b),gas:g,graw:$("gas").value.replace(/\s/g,""),dist,res};
 }
 
 /* ---------- save ---------- */
 function doSave(){
   const c=calc(); if(!c)return;
   const r=rec(sel);
-  const entry={d:TODAY,prev:c.prev,cur:c.cur,gas:c.gas,dist:c.dist,res:+c.res.toFixed(0)};
+  const entry={d:TODAY,prev:c.prev,cur:c.cur,gas:c.gas,graw:c.graw,dist:c.dist,res:+c.res.toFixed(0)};
   const i=r.log.findIndex(x=>x.d===TODAY);
   if(i>=0)r.log[i]=entry; else r.log.unshift(entry);
-  r.last=c.cur;
+  r.last=c.cur;   // c.cur = kattaroq probeg (normallashtirilgan)
   save();
 
   // reset for next truck — cursor straight back to the picker
@@ -610,14 +626,23 @@ $("editBtn").onclick=()=>{
   if(e.key==="Escape"){e.preventDefault();resetForm(true)}
 }));
 
-["prev","cur","gas"].forEach(id=>$(id).oninput=e=>{
-  // faqat raqam va bitta kasr belgisi (vergul yoki nuqta)
+/* probeg: faqat raqam va bitta kasr belgisi */
+["prev","cur"].forEach(id=>$(id).oninput=e=>{
   let v=e.target.value.replace(/[^\d.,]/g,"");
   const m=v.match(/^\d*[.,]?\d*/);
-  if(m&&m[0]!==v)e.target.value=m[0];
-  else if(v!==e.target.value)e.target.value=v;
+  if(m&&m[0]!==e.target.value)e.target.value=m[0];
   calc();
 });
+/* gaz: raqam, kasr belgisi va + (bir necha marta olish: 120+95,5+87) */
+$("gas").oninput=e=>{
+  let v=e.target.value.replace(/[^\d.,+]/g,"");
+  v=v.replace(/\++/g,"+").replace(/^\+/,"");            // ++ va boshdagi + yo'q
+  v=v.split("+").map(s=>{                               // har segmentda bitta kasr belgisi
+    const m=s.match(/^\d*[.,]?\d*/); return m?m[0]:"";
+  }).join("+");
+  if(v!==e.target.value)e.target.value=v;
+  calc();
+};
 ["prev","cur","gas"].forEach(id=>$(id).onkeydown=e=>{
   if(e.key!=="Enter")return;
   e.preventDefault();
