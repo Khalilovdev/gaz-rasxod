@@ -78,15 +78,15 @@
     font-family:Consolas,monospace;white-space:nowrap}
   .sep{padding:5px 10px!important;background:var(--ink)!important;color:var(--plate);
     font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-    cursor:default!important;position:sticky;bottom:0}
+    cursor:default!important;}
 
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .f{margin-bottom:8px}
-  input[type=number]{
+  .card input.numf{
     width:100%;padding:11px 10px;border:2px solid var(--ink);background:#fff;
     font-family:Consolas,monospace;font-size:clamp(16px,4.6vw,21px);font-weight:800;color:var(--ink)
   }
-  input[type=number]:focus{outline:3px solid var(--plate);outline-offset:1px}
+  .card input.numf:focus{outline:3px solid var(--plate);outline-offset:1px}
   input:disabled{background:var(--paper2);color:var(--muted)}
   .prevbar{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px}
   .edit{background:none;border:none;font-family:inherit;font-size:10px;font-weight:800;
@@ -197,17 +197,17 @@
         <label for="prev" style="margin:0">Oldingi probeg</label>
         <button class="edit hide" id="editBtn" type="button">O'zgartirish</button>
       </div>
-      <input id="prev" type="number" inputmode="decimal" step="any" placeholder="—">
+      <input id="prev" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="—">
     </div>
 
     <div class="row">
       <div class="f">
         <label for="cur">Hozirgi probeg</label>
-        <input id="cur" type="number" inputmode="decimal" step="any" placeholder="km">
+        <input id="cur" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="km">
       </div>
       <div class="f">
         <label for="gas">Olingan gaz</label>
-        <input id="gas" type="number" inputmode="decimal" step="any" placeholder="m³">
+        <input id="gas" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="m³">
       </div>
     </div>
 
@@ -300,7 +300,20 @@ function tashkentDate(){
   const g=t=>p.find(x=>x.type===t).value;
   return `${g("day")}.${g("month")}.${g("year")}`;
 }
-const TODAY=tashkentDate();
+let TODAY=tashkentDate();
+/* Yarim tun o'tsa yoki dastur fondan qaytsa — sanani yangilash */
+function refreshDate(){
+  const d=tashkentDate();
+  if(d!==TODAY){
+    TODAY=d;
+    $("dateBox").textContent=TODAY;
+    resetForm(false);
+    renderToday();
+  }
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshDate()});
+window.addEventListener("focus",refreshDate);
+setInterval(refreshDate,60000);
 
 function load(){try{DB=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){DB={}}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){alert("Saqlanmadi — xotira to'lgan.")}}
@@ -597,7 +610,14 @@ $("editBtn").onclick=()=>{
   if(e.key==="Escape"){e.preventDefault();resetForm(true)}
 }));
 
-["prev","cur","gas"].forEach(id=>$(id).oninput=calc);
+["prev","cur","gas"].forEach(id=>$(id).oninput=e=>{
+  // faqat raqam va bitta kasr belgisi (vergul yoki nuqta)
+  let v=e.target.value.replace(/[^\d.,]/g,"");
+  const m=v.match(/^\d*[.,]?\d*/);
+  if(m&&m[0]!==v)e.target.value=m[0];
+  else if(v!==e.target.value)e.target.value=v;
+  calc();
+});
 ["prev","cur","gas"].forEach(id=>$(id).onkeydown=e=>{
   if(e.key!=="Enter")return;
   e.preventDefault();
@@ -618,7 +638,23 @@ $("pick").focus();
 
 /* PWA: service worker (faqat https/localhost'da ishlaydi, file:// da jim o'tadi) */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  window.addEventListener("load",async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register("sw.js");
+      reg.update().catch(()=>{});
+      // fonga o'tib qaytganda ham yangilanishni tekshirish
+      document.addEventListener("visibilitychange",()=>{
+        if(!document.hidden)reg.update().catch(()=>{});
+      });
+    }catch(e){}
+  });
+  // yangi versiya faollashsa — bir marta avtomatik qayta yuklash
+  // (birinchi tashrifda claim ham shu hodisani chaqiradi — unda reload kerak emas)
+  const hadController=!!navigator.serviceWorker.controller;
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(!hadController||reloaded)return; reloaded=true; location.reload();
+  });
 }
 </script>
 </body>
