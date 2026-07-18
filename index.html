@@ -280,7 +280,9 @@ const TRUCKS=[
  ["839 OBA","HOWO A7","Стрекалов Сергей"]
 ];
 
-const APP_VERSION="v9";
+const APP_VERSION="v10";
+/* Sensorli qurilmada avtofokus qilinmaydi — klaviatura o'zi sakrab chiqmasin */
+const IS_TOUCH=("ontouchstart" in window)||(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches);
 const KEY="gazDB_v2";
 /* norma: shundan oshsa qizil */
 const NORM_DEFAULT=75;
@@ -386,7 +388,7 @@ function choose(plate){
   $("clrBtn").classList.remove("hide");
   $("strow").classList.remove("hide");
   calc();
-  ($("prev").disabled?$("cur"):$("prev")).focus();
+  if(!IS_TOUCH)($("prev").disabled?$("cur"):$("prev")).focus();
 }
 /* tanlovni bekor qilish / formani tozalash */
 function resetForm(openList){
@@ -398,7 +400,7 @@ function resetForm(openList){
   $("clrBtn").classList.add("hide");
   $("strow").classList.add("hide");
   calc();
-  if(openList){ $("pick").focus(); openDrop(""); }
+  if(openList&&!IS_TOUCH){ $("pick").focus(); openDrop(""); }
 }
 function lockPrev(on){
   $("prev").disabled=on;
@@ -665,7 +667,7 @@ $("expBtn").onclick=doExp;
 $("impBtn").onclick=()=>$("file").click();
 $("file").onchange=e=>{if(e.target.files[0])doImp(e.target.files[0]);e.target.value=""};
 
-$("pick").focus();
+if(!IS_TOUCH)$("pick").focus();
 
 /* PWA: service worker (faqat https/localhost'da ishlaydi, file:// da jim o'tadi) */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
