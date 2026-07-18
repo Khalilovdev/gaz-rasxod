@@ -1,6 +1,6 @@
 /* Gaz rasxod — service worker
    Cache-first: bir marta yuklangach, butunlay oflayn ishlaydi. */
-const CACHE = "gaz-rasxod-v4";
+const CACHE = "gaz-rasxod-v9";
 const ASSETS = [
   "./",
   "./index.html",
