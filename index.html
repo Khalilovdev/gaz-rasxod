@@ -163,6 +163,8 @@
     font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--steel);cursor:pointer}
   .tools button:hover{border-color:var(--ink);color:var(--ink)}
+  .ver{text-align:center;margin-top:10px;font-family:Consolas,monospace;
+    font-size:10px;font-weight:700;color:var(--line);letter-spacing:.08em}
   .hide{display:none}
 
   @media(max-width:430px){
@@ -241,6 +243,7 @@
     <button id="impBtn">Tiklash</button>
     <input type="file" id="file" accept=".json" class="hide">
   </div>
+  <div class="ver" id="verBox"></div>
 
 </div>
 
@@ -277,6 +280,7 @@ const TRUCKS=[
  ["839 OBA","HOWO A7","Стрекалов Сергей"]
 ];
 
+const APP_VERSION="v9";
 const KEY="gazDB_v2";
 /* norma: shundan oshsa qizil */
 const NORM_DEFAULT=75;
@@ -307,6 +311,7 @@ function refreshDate(){
   if(d!==TODAY){
     TODAY=d;
     $("dateBox").textContent=TODAY;
+$("verBox").textContent="GAZ RASXOD · "+APP_VERSION;
     resetForm(false);
     renderToday();
   }
@@ -589,6 +594,7 @@ function doImp(f){
 /* ---------- wire ---------- */
 load();
 $("dateBox").textContent=TODAY;
+$("verBox").textContent="GAZ RASXOD · "+APP_VERSION;
 renderToday();
 
 $("pick").onfocus=()=>{
