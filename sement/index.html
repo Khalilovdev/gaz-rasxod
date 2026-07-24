@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#14120F">
+<meta name="application-name" content="Sementavoz gaz">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Sementavoz gaz</title>
+<style>
+  :root{
+    --ink:#14120F;
+    --plate:#7FB3D5;
+    --paper:#E9E5DD;
+    --paper2:#DBD6CB;
+    --line:#B7B0A2;
+    --steel:#3B4A52;
+    --ok:#2F6B4F;
+    --warn:#A8431F;
+    --muted:#6E675C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper);
+    background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.02) 0 1px,transparent 1px 4px);
+    color:var(--ink);
+    font-family:"Segoe UI",Roboto,system-ui,sans-serif;
+    font-weight:600;
+    -webkit-font-smoothing:antialiased;
+    padding:10px 10px 28px;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border-bottom:3px solid var(--ink);padding-bottom:8px;margin-bottom:12px}
+  .ttl{font-size:clamp(10px,2.9vw,13px);font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;line-height:1.25}
+  .date{font-family:Consolas,monospace;font-weight:800;font-size:clamp(11px,3.2vw,14px);
+    background:var(--plate);border:2px solid var(--ink);padding:4px 8px;
+    box-shadow:2px 2px 0 var(--ink);white-space:nowrap;flex-shrink:0}
+
+  .card{background:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:12px}
+
+  label{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--steel);margin-bottom:4px}
+
+  .pickwrap{position:relative;margin-bottom:10px}
+  #pick{
+    width:100%;padding:11px 10px;border:2px solid var(--ink);background:#fff;
+    font-family:Consolas,monospace;font-size:clamp(15px,4.2vw,21px);font-weight:800;
+    letter-spacing:.5px;text-transform:uppercase;color:var(--ink);
+    text-overflow:ellipsis;
+  }
+  #pick:focus{outline:3px solid var(--plate);outline-offset:1px}
+  #pick.locked{background:var(--plate);cursor:pointer}
+  .drop{
+    position:absolute;top:100%;left:0;right:0;z-index:20;background:#fff;
+    border:2px solid var(--ink);border-top:none;max-height:52vh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;box-shadow:4px 4px 0 rgba(0,0,0,.25)
+  }
+  .drop div[data-i]{padding:10px;cursor:pointer;display:flex;align-items:center;gap:8px;
+    border-bottom:1px solid var(--paper2)}
+  .drop div[data-i]:last-child{border-bottom:none}
+  .drop div.on,.drop div[data-i]:hover{background:var(--plate)}
+  .drop div.dim{background:var(--paper2)}
+  .drop div.dim.on{background:var(--plate)}
+  .drop .p{font-family:Consolas,monospace;font-weight:800;font-size:15px;flex-shrink:0}
+  .drop .n{font-size:11px;color:var(--muted);flex:1;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  .drop .tick{color:var(--ok);font-weight:800;font-size:11px;flex-shrink:0;
+    font-family:Consolas,monospace;white-space:nowrap}
+  .sep{padding:5px 10px!important;background:var(--ink)!important;color:var(--plate);
+    font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    cursor:default!important;}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .f{margin-bottom:8px}
+  .card input.numf{
+    width:100%;padding:11px 10px;border:2px solid var(--ink);background:#fff;
+    font-family:Consolas,monospace;font-size:clamp(16px,4.6vw,21px);font-weight:800;color:var(--ink)
+  }
+  .card input.numf:focus{outline:3px solid var(--plate);outline-offset:1px}
+  input:disabled{background:var(--paper2);color:var(--muted)}
+  .prevbar{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px}
+  .edit{background:none;border:none;font-family:inherit;font-size:10px;font-weight:800;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--steel);cursor:pointer;
+    text-decoration:underline;flex-shrink:0;padding:2px 0}
+
+  .out{display:flex;align-items:center;gap:10px;margin-top:10px;
+    border-top:3px solid var(--ink);padding-top:10px}
+  .odo{background:var(--ink);display:inline-flex;align-items:stretch;gap:2px;
+    padding:5px;flex-shrink:0}
+  .odo span{background:#1d2b33;color:#EDE7D8;font-family:Consolas,monospace;
+    font-weight:800;font-size:clamp(22px,7vw,30px);padding:3px 5px;line-height:1.15;
+    border-top:1px solid #2f4450;border-bottom:1px solid #0b1216}
+  .odo span.dot{background:transparent;color:var(--plate);padding:3px 1px}
+  .odo span.u{background:transparent;color:var(--plate);font-size:clamp(10px,2.6vw,12px);
+    display:flex;align-items:flex-end;padding:0 0 5px 3px}
+  .oc{min-width:0;flex:1}
+  .ou{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--steel);
+    text-transform:uppercase;white-space:nowrap}
+  .bd{font-size:11px;color:var(--muted);font-family:Consolas,monospace;font-weight:700;
+    margin-top:2px;word-break:break-word}
+  .bd.err{color:var(--warn)}
+
+  .btn{width:100%;padding:14px 10px;margin-top:10px;background:var(--ink);color:var(--plate);
+    border:2px solid var(--ink);font-family:inherit;font-weight:800;
+    font-size:clamp(11px,3vw,13px);letter-spacing:.1em;
+    text-transform:uppercase;cursor:pointer;box-shadow:4px 4px 0 var(--steel)}
+  .btn:hover{background:#241f1a}
+  .btn:active{transform:translate(2px,2px);box-shadow:0 0 0}
+  .btn:disabled{background:var(--line);border-color:var(--line);color:#fff;
+    box-shadow:none;cursor:not-allowed}
+
+  .today{margin-top:16px}
+  .th{display:flex;justify-content:space-between;align-items:center;
+    border-bottom:2px solid var(--ink);padding-bottom:5px;margin-bottom:2px}
+  .th h2{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .cnt{font-family:Consolas,monospace;font-weight:800;font-size:12px;color:var(--muted)}
+  .item{display:flex;align-items:center;gap:8px;padding:9px 2px;
+    border-bottom:1px solid var(--paper2)}
+  .item .p{font-family:Consolas,monospace;font-weight:800;font-size:clamp(13px,3.8vw,16px);
+    flex-shrink:0}
+  .item .r{font-family:Consolas,monospace;font-weight:800;
+    font-size:clamp(16px,4.8vw,19px);color:var(--ok);flex-shrink:0;
+    display:flex;align-items:baseline;gap:2px}
+  .item .r i{font-size:9px;font-style:normal;color:var(--muted);font-weight:700}
+  .item .m{font-size:10px;color:var(--muted);flex:1;min-width:0;font-family:Consolas,monospace;
+    text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .x{background:none;border:none;color:var(--warn);font-weight:800;font-size:15px;
+    cursor:pointer;padding:4px 2px;flex-shrink:0}
+  .empty{font-size:12px;color:var(--muted);padding:10px 2px}
+
+  .btn2{background:#fff;color:var(--ink);box-shadow:4px 4px 0 var(--line)}
+  .btn2:hover{background:var(--paper2)}
+  .btn.tg{background:#2AABEE;border-color:var(--ink);color:#fff;box-shadow:4px 4px 0 var(--ink)}
+  .btn.tg:hover{background:#1e96d6}
+  .btn.tg:disabled{background:var(--line);color:#fff;box-shadow:none}
+  .strow{display:flex;gap:8px;margin-top:8px}
+  .strow .btn{margin-top:0;flex:1;padding:11px 6px;font-size:clamp(10px,2.7vw,12px)}
+  .btn.sk{background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--line)}
+  .btn.sk:hover{background:var(--paper2)}
+  .btn.sus{background:#fff;color:var(--warn);border-color:var(--warn);box-shadow:3px 3px 0 var(--warn)}
+  .btn.sus:hover{background:#fbeee8}
+  .odo.over span{color:#FF6B4A}
+  .odo.over span.dot,.odo.over span.u{color:#FF6B4A}
+  .item .r.bad{color:var(--warn)}
+  .item .st{font-size:13px;flex-shrink:0;line-height:1}
+  .item.skipitem{background:var(--paper2);padding-left:6px;padding-right:6px}
+  .sklbl{flex:1;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);
+    font-family:Consolas,monospace;text-align:right}
+  .sklbl.sus{color:var(--warn)}
+  .drop .tick.tsus{color:var(--warn)}
+  .tools{display:flex;gap:8px;margin-top:16px;border-top:2px solid var(--line);padding-top:10px}
+  .tools button{flex:1;padding:9px 4px;background:none;border:2px solid var(--line);
+    font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--steel);cursor:pointer}
+  .tools button:hover{border-color:var(--ink);color:var(--ink)}
+  .ver{text-align:center;margin-top:10px;font-family:Consolas,monospace;
+    font-size:10px;font-weight:700;color:var(--line);letter-spacing:.08em}
+  .applink{display:block;text-align:center;margin-top:6px;font-size:10px;font-weight:800;
+    letter-spacing:.08em;color:var(--steel);text-decoration:none;font-family:Consolas,monospace}
+  .applink:hover{text-decoration:underline}
+  .hide{display:none}
+
+  @media(max-width:430px){
+    .row{grid-template-columns:1fr;gap:0}
+    header{flex-direction:column;align-items:stretch;gap:6px}
+    .date{align-self:flex-start}
+    .item .m{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="ttl">Sementavozlar gaz rasxod</div>
+    <div class="date" id="dateBox">—</div>
+  </header>
+
+  <div class="card">
+    <div class="pickwrap">
+      <div class="prevbar">
+        <label for="pick" style="margin:0">Mashina</label>
+        <button class="edit hide" id="clrBtn" type="button">✕ Bekor qilish</button>
+      </div>
+      <input id="pick" type="text" placeholder="Raqam yoki ism…" autocomplete="off" spellcheck="false">
+      <div class="drop hide" id="drop"></div>
+    </div>
+
+    <div class="f">
+      <div class="prevbar">
+        <label for="prev" style="margin:0">Oldingi probeg</label>
+        <button class="edit hide" id="editBtn" type="button">O'zgartirish</button>
+      </div>
+      <input id="prev" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="—">
+    </div>
+
+    <div class="row">
+      <div class="f">
+        <label for="cur">Hozirgi probeg</label>
+        <input id="cur" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="km">
+      </div>
+      <div class="f">
+        <label for="gas">Olingan gaz</label>
+        <input id="gas" class="numf" type="text" inputmode="decimal" autocomplete="off" placeholder="m³">
+      </div>
+    </div>
+
+    <div class="out">
+      <div class="odo" id="odo"><span>0</span></div>
+      <div class="oc">
+        <div class="ou">m³ / 100 km</div>
+        <div class="bd" id="bd">yo'l: —</div>
+      </div>
+    </div>
+
+    <button class="btn" id="saveBtn" disabled>Saqlash · Enter</button>
+    <div class="strow hide" id="strow">
+      <button class="btn sk" id="skipBtn" type="button">⛔ Gaz olmagan</button>
+      <button class="btn sus" id="susBtn" type="button">⚠️ Shubhali</button>
+    </div>
+  </div>
+
+  <div class="today">
+    <div class="th">
+      <h2>Bugungi ro'yxat</h2>
+      <span class="cnt" id="cnt">0</span>
+    </div>
+    <div id="list"></div>
+    <button class="btn tg" id="tgBtn" disabled>📤 Telegram'ga yuborish</button>
+    <button class="btn btn2" id="txtBtn" disabled>TXT yuklab olish</button>
+  </div>
+
+  <div class="tools">
+    <button id="expBtn">Zaxira</button>
+    <button id="impBtn">Tiklash</button>
+    <input type="file" id="file" accept=".json" class="hide">
+  </div>
+  <div class="ver" id="verBox"></div>
+  <a class="applink" href="../">⬅ TONARLAR</a>
+  <a class="applink" href="../samosval/">SAMOSVALLAR</a>
+
+</div>
+
+<script>
+const TRUCKS=[
+ ["846 WBA","HOWO A7","Хайруллаев Бобур"],
+ ["769 AMA","HOWO","Бердийев Шодиёр"],
+ ["059 UAA","HOWO","Жуманов Улуғбек"],
+ ["476 MBA","HOWO","Хакимов Махмуд"],
+ ["523 LBA","HOWO","Жамолов Юсуфхон"],
+ ["689 JBA","HOWO","Умиров Толкин"],
+ ["692 JBA","HOWO","Алиев Жўрабек"],
+ ["741 TBA","HOWO","Гаффоров Нодир"],
+ ["964 PBA","HOWO","Шерназаров Уктам"],
+ ["841 WBA","HOWO A7","Эшмирзайев Асқарали"],
+ ["842 WBA","HOWO A7","Шарипов Огабек"],
+ ["843 WBA","HOWO A7","Хаитов Шавкат"],
+ ["965 PBA","HOWO A7","Махкамов Илёс"],
+ ["967 PBA","HOWO A7","Санакулов Отабек"],
+ ["638 GBA","SHACMAN",""],
+ ["639 GBA","SHACMAN","Каримов Алишер"],
+ ["698 VBA","SHACMAN","Бердиев Жўрабек"],
+ ["963 PBA","SHACMAN","Шарипов Абдували"],
+ ["845 WBA","HOWO A7","Исломов Икром"]
+];
+
+const APP_VERSION="v1";
+/* Sensorli qurilmada avtofokus qilinmaydi — klaviatura o'zi sakrab chiqmasin */
+const IS_TOUCH=("ontouchstart" in window)||(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches);
+const KEY="gazDB_sement_v1";
+/* norma: shundan oshsa qizil */
+const NORM_DEFAULT=65;
+const NORMS={};
+const LABELS={};
+const norm=p=>NORMS[p]||NORM_DEFAULT;
+const label=p=>LABELS[p]||"";
+let DB={};          // plate -> {last, log:[{d,prev,cur,gas,dist,res}]}
+let sel=null;       // selected plate
+let hi=-1;          // dropdown highlight
+let shown=[];       // filtered list
+
+const $=id=>document.getElementById(id);
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return isFinite(n)?n:NaN};
+const fmt=n=>n.toLocaleString("ru-RU",{maximumFractionDigits:1});
+
+/* Tashkent date, independent of device timezone */
+function tashkentDate(){
+  const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Tashkent",
+    day:"2-digit",month:"2-digit",year:"numeric"}).formatToParts(new Date());
+  const g=t=>p.find(x=>x.type===t).value;
+  return `${g("day")}.${g("month")}.${g("year")}`;
+}
+let TODAY=tashkentDate();
+/* Yarim tun o'tsa yoki dastur fondan qaytsa — sanani yangilash */
+function refreshDate(){
+  const d=tashkentDate();
+  if(d!==TODAY){
+    TODAY=d;
+    $("dateBox").textContent=TODAY;
+$("verBox").textContent="SEMENT GAZ · "+APP_VERSION;
+    resetForm(false);
+    renderToday();
+  }
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshDate()});
+window.addEventListener("focus",refreshDate);
+setInterval(refreshDate,60000);
+
+function load(){try{DB=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){DB={}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){alert("Saqlanmadi — xotira to'lgan.")}}
+function rec(p){if(!DB[p])DB[p]={last:null,log:[]};return DB[p]}
+const todayRec=p=>(DB[p]?.log||[]).find(x=>x.d===TODAY);
+
+/* ---------- dropdown ---------- */
+function filter(q){
+  q=q.trim().toLowerCase();
+  const hit=TRUCKS.filter(([p,m,n])=>!q||p.toLowerCase().includes(q)||
+    n.toLowerCase().includes(q)||m.toLowerCase().includes(q));
+  // kiritilganlar oxiriga tushadi, tartibi buzilmaydi
+  const left=[],done=[];
+  hit.forEach(t=>(todayRec(t[0])?done:left).push(t));
+  return left.concat(done);
+}
+function openDrop(q=""){
+  shown=filter(q); hi=shown.length?0:-1;
+  const d=$("drop");
+  if(!shown.length){d.classList.add("hide");return}
+  d.innerHTML=shown.map(([p,m,n],i)=>{
+    const done=todayRec(p);
+    const first=done&&i>0&&!todayRec(shown[i-1][0]);
+    return `${first?'<div class="sep">bugun kiritilgan</div>':""}<div class="${i===hi?"on":""}${done?" dim":""}" data-i="${i}">
+      <span class="p">${p}</span>
+      <span class="n">${n||m}</span>
+      ${done?`<span class="tick${done.skip==="shubhali"?" tsus":""}">${done.skip?(done.skip==="shubhali"?"⚠️ shubhali":"⛔ olmagan"):done.res+" m³ ✓"}</span>`:""}
+    </div>`}).join("");
+  d.classList.remove("hide");
+  d.querySelectorAll("div[data-i]").forEach(el=>{
+    el.onmousedown=e=>{e.preventDefault();choose(shown[+el.dataset.i][0])};
+  });
+}
+function closeDrop(){$("drop").classList.add("hide")}
+function moveHi(step){
+  if(!shown.length)return;
+  hi=(hi+step+shown.length)%shown.length;
+  const d=$("drop");
+  const rows=d.querySelectorAll("div[data-i]");
+  rows.forEach((el,i)=>el.classList.toggle("on",i===hi));
+  rows[hi]?.scrollIntoView({block:"nearest"});
+}
+
+/* ---------- select truck ---------- */
+function choose(plate){
+  sel=plate;
+  const t=TRUCKS.find(x=>x[0]===plate);
+  $("pick").value=plate+"  ·  "+(t[2]||t[1]);
+  $("pick").classList.add("locked");
+  closeDrop();
+
+  const r=rec(plate);
+  const done=todayRec(plate);
+  const isSkip=done&&done.skip;
+
+  if(done&&!isSkip){            // already recorded today -> load for edit
+    $("prev").value=done.prev; $("cur").value=done.cur;
+    $("gas").value=done.graw||done.gas;
+  }else{
+    $("cur").value=""; $("gas").value="";
+    $("prev").value = r.last!==null ? r.last : "";
+  }
+  lockPrev(r.last!==null && !(done&&!isSkip));
+  $("editBtn").classList.toggle("hide", r.last===null);
+  $("clrBtn").classList.remove("hide");
+  $("strow").classList.remove("hide");
+  calc();
+  if(!IS_TOUCH)($("prev").disabled?$("cur"):$("prev")).focus();
+}
+/* tanlovni bekor qilish / formani tozalash */
+function resetForm(openList){
+  sel=null;
+  $("pick").value=""; $("pick").classList.remove("locked");
+  $("prev").value=""; $("cur").value=""; $("gas").value="";
+  lockPrev(false);
+  $("editBtn").classList.add("hide");
+  $("clrBtn").classList.add("hide");
+  $("strow").classList.add("hide");
+  calc();
+  if(openList&&!IS_TOUCH){ $("pick").focus(); openDrop(""); }
+}
+function lockPrev(on){
+  $("prev").disabled=on;
+  $("editBtn").textContent = on ? "O'zgartirish" : "Qulflash";
+}
+
+/* ---------- calc ---------- */
+function setOdo(txt,over){
+  const b=$("odo"); b.innerHTML="";
+  b.classList.toggle("over",!!over);
+  [...txt].forEach(ch=>{
+    const s=document.createElement("span");
+    if(ch==="."||ch===","){s.className="dot";s.textContent="."}else s.textContent=ch;
+    b.appendChild(s);
+  });
+  const u=document.createElement("span");
+  u.className="u"; u.textContent="m³";
+  b.appendChild(u);
+}
+/* gaz: "120+95,5+87" ko'rinishini yig'ib hisoblash.
+   Yozish davomida oxirgi bo'sh "+" e'tiborga olinmaydi. */
+function gasNum(v){
+  const parts=String(v).split("+").map(s=>s.trim()).filter(s=>s!=="");
+  if(!parts.length)return NaN;
+  let sum=0;
+  for(const s of parts){
+    const n=num(s);
+    if(isNaN(n))return NaN;
+    sum+=n;
+  }
+  return sum;
+}
+function calc(){
+  const a=num($("prev").value),b=num($("cur").value),g=gasNum($("gas").value);
+  const bd=$("bd"); bd.classList.remove("err");
+  if(!sel||isNaN(a)||isNaN(b)||isNaN(g)){
+    setOdo("0"); bd.textContent="yo'l: —"; $("saveBtn").disabled=true; return null;
+  }
+  // tartib ahamiyatsiz: farqning moduli olinadi
+  const dist=Math.abs(b-a);
+  if(dist<=0){
+    setOdo("0"); bd.textContent="ikkala probeg teng — farq yo'q"; bd.classList.add("err");
+    $("saveBtn").disabled=true; return null;
+  }
+  if(g<=0){
+    setOdo("0"); bd.textContent="gaz 0 dan katta bo'lsin"; bd.classList.add("err");
+    $("saveBtn").disabled=true; return null;
+  }
+  const res=g/dist*100;
+  const over=Math.round(res)>norm(sel);
+  setOdo(res.toFixed(0),over);
+  const multi=$("gas").value.includes("+");
+  bd.textContent=`yo'l ${fmt(dist)} km · gaz ${multi?$("gas").value.replace(/\s/g,"")+" = ":""}${fmt(g)} m³`+
+    (over?` — NORMA ${norm(sel)} DAN OSHDI!`:"");
+  bd.classList.toggle("err",over);
+  $("saveBtn").disabled=false;
+  $("saveBtn").textContent=(todayRec(sel)?"Yangilash":"Saqlash")+" · Enter";
+  return {prev:Math.min(a,b),cur:Math.max(a,b),gas:g,graw:$("gas").value.replace(/\s/g,""),dist,res};
+}
+
+/* ---------- save ---------- */
+function doSave(){
+  const c=calc(); if(!c)return;
+  const r=rec(sel);
+  const entry={d:TODAY,prev:c.prev,cur:c.cur,gas:c.gas,graw:c.graw,dist:c.dist,res:+c.res.toFixed(0)};
+  const i=r.log.findIndex(x=>x.d===TODAY);
+  if(i>=0)r.log[i]=entry; else r.log.unshift(entry);
+  r.last=c.cur;   // c.cur = kattaroq probeg (normallashtirilgan)
+  save();
+
+  // reset for next truck — cursor straight back to the picker
+  renderToday();
+  resetForm(true);
+}
+/* holat bilan belgilash: 'olmagan' | 'shubhali' — probeg saqlanmaydi */
+function doSkip(kind){
+  if(!sel)return;
+  const r=rec(sel);
+  const entry={d:TODAY,skip:kind};
+  const i=r.log.findIndex(x=>x.d===TODAY);
+  if(i>=0)r.log[i]=entry; else r.log.unshift(entry);
+  // r.last O'ZGARMAYDI — oxirgi haqiqiy probeg saqlanib qoladi
+  save();
+  renderToday();
+  resetForm(true);
+}
+/* eng oxirgi haqiqiy (raqamli) yozuvdan probegni topish */
+function lastCur(r){
+  const e=r.log.find(x=>!x.skip);
+  return e?e.cur:null;
+}
+
+/* ---------- today list ---------- */
+function todayRows(){
+  const nums=[],skips=[];
+  for(const [p] of TRUCKS){
+    const e=todayRec(p);
+    if(!e)continue;
+    if(e.skip)skips.push({p,skip:e.skip});
+    else nums.push({p,res:e.res,dist:e.dist,gas:e.gas});
+  }
+  nums.sort((a,b)=>a.res-b.res);   // kichikdan kattaga
+  // shubhalilar olmaganlardan oldin — ular muhimroq
+  skips.sort((a,b)=>(a.skip==="shubhali"?0:1)-(b.skip==="shubhali"?0:1));
+  return {nums,skips,total:nums.length+skips.length};
+}
+function renderToday(){
+  const {nums,skips,total}=todayRows();
+  $("cnt").textContent=total;
+  $("txtBtn").disabled=!total;
+  $("tgBtn").disabled=!total;
+  const box=$("list");
+  if(!total){box.innerHTML='<div class="empty">Hali yozuv yo\'q.</div>';return}
+  const numHtml=nums.map(r=>{
+    const over=r.res>norm(r.p);
+    return `<div class="item">
+    <span class="p">${r.p}${label(r.p)}</span>
+    <span class="r${over?" bad":""}">${r.res}<i>m³</i></span>
+    <span class="st">${over?"🔴":"✅"}</span>
+    <span class="m">${fmt(r.dist)} km · ${fmt(r.gas)} m³</span>
+    <button class="x" data-p="${r.p}" title="O'chirish">✕</button>
+  </div>`}).join("");
+  const skipHtml=skips.map(r=>`<div class="item skipitem">
+    <span class="p">${r.p}${label(r.p)}</span>
+    <span class="sklbl${r.skip==="shubhali"?" sus":""}">${r.skip==="shubhali"?"⚠️ SHUBHALI":"⛔ GAZ OLMAGAN"}</span>
+    <button class="x" data-p="${r.p}" title="O'chirish">✕</button>
+  </div>`).join("");
+  box.innerHTML=numHtml+skipHtml;
+  box.querySelectorAll(".x").forEach(b=>b.onclick=()=>{
+    const p=b.dataset.p;
+    if(!confirm(p+" — bugungi yozuv o'chirilsinmi?"))return;
+    const r=rec(p);
+    r.log=r.log.filter(x=>x.d!==TODAY);
+    r.last=lastCur(r);
+    save(); renderToday();
+    if(sel===p)choose(p);
+  });
+}
+
+/* ---------- TXT ---------- */
+function buildTxt(){
+  const {nums,skips}=todayRows();
+  let out="SEMENTAVOZLAR GAZ RASXOD "+TODAY+"\n\n"+
+    nums.map(r=>{
+      const over=r.res>norm(r.p);
+      return r.p+label(r.p)+" - "+r.res+"  m³ "+(over?"🔴":"✅");
+    }).join("\n\n");
+  if(skips.length){
+    out+="\n\n"+skips.map(r=>
+      r.p+label(r.p)+" - "+(r.skip==="shubhali"?"SHUBHALI ⚠️":"GAZ OLMAGAN ⛔")
+    ).join("\n\n");
+  }
+  return out+"\n";
+}
+function doTxt(){
+  const blob=new Blob([buildTxt()],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="SEMENTAVOZLAR GAZ RASXOD "+TODAY+".txt";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+async function doShare(){
+  const text=buildTxt();
+  if(navigator.share){
+    try{ await navigator.share({text}); return; }
+    catch(e){ if(e.name==="AbortError")return; }
+  }
+  // fallback: Telegram share link
+  location.href="https://t.me/share/url?url=%20&text="+encodeURIComponent(text);
+}
+
+/* ---------- backup ---------- */
+function doExp(){
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);
+  a.download="gaz-zaxira-"+TODAY.replace(/\./g,"-")+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function doImp(f){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const d=JSON.parse(fr.result);
+      if(typeof d!=="object"||Array.isArray(d))throw 0;
+      if(!confirm("Hozirgi ma'lumot almashtiriladi. Davom etilsinmi?"))return;
+      DB=d; save(); renderToday(); alert("Tiklandi.");
+    }catch(e){alert("Fayl noto'g'ri.")}
+  };
+  fr.readAsText(f);
+}
+
+/* ---------- wire ---------- */
+load();
+$("dateBox").textContent=TODAY;
+$("verBox").textContent="SEMENT GAZ · "+APP_VERSION;
+renderToday();
+
+$("pick").onfocus=()=>{
+  if(sel)resetForm(false);
+  openDrop("");
+};
+$("pick").oninput=e=>{
+  sel=null;
+  e.target.classList.remove("locked");
+  $("clrBtn").classList.toggle("hide",!e.target.value);
+  openDrop(e.target.value);
+  calc();
+};
+$("pick").onblur=()=>setTimeout(closeDrop,120);
+$("pick").onkeydown=e=>{
+  if(e.key==="ArrowDown"){e.preventDefault();moveHi(1)}
+  else if(e.key==="ArrowUp"){e.preventDefault();moveHi(-1)}
+  else if(e.key==="Enter"){e.preventDefault();if(hi>=0&&shown[hi])choose(shown[hi][0])}
+  else if(e.key==="Escape"){
+    if(sel||$("pick").value){e.preventDefault();resetForm(false);closeDrop()}
+    else closeDrop();
+  }
+};
+
+$("clrBtn").onclick=()=>resetForm(true);
+
+$("editBtn").onclick=()=>{
+  const on=!$("prev").disabled;
+  lockPrev(on);
+  if(!on)$("prev").focus();
+};
+
+// Escape — istalgan maydondan tanlovni bekor qiladi
+["prev","cur","gas"].forEach(id=>$(id).addEventListener("keydown",e=>{
+  if(e.key==="Escape"){e.preventDefault();resetForm(true)}
+}));
+
+/* probeg: faqat raqam va bitta kasr belgisi */
+["prev","cur"].forEach(id=>$(id).oninput=e=>{
+  let v=e.target.value.replace(/[^\d.,]/g,"");
+  const m=v.match(/^\d*[.,]?\d*/);
+  if(m&&m[0]!==e.target.value)e.target.value=m[0];
+  calc();
+});
+/* gaz: raqam, kasr belgisi va + (bir necha marta olish: 120+95,5+87) */
+$("gas").oninput=e=>{
+  let v=e.target.value.replace(/[^\d.,+]/g,"");
+  v=v.replace(/\++/g,"+").replace(/^\+/,"");            // ++ va boshdagi + yo'q
+  v=v.split("+").map(s=>{                               // har segmentda bitta kasr belgisi
+    const m=s.match(/^\d*[.,]?\d*/); return m?m[0]:"";
+  }).join("+");
+  if(v!==e.target.value)e.target.value=v;
+  calc();
+};
+["prev","cur","gas"].forEach(id=>$(id).onkeydown=e=>{
+  if(e.key!=="Enter")return;
+  e.preventDefault();
+  if(id==="prev"){$("cur").focus();return}
+  if(id==="cur"){$("gas").focus();return}
+  if(!$("saveBtn").disabled)doSave();
+});
+$("saveBtn").onclick=doSave;
+$("skipBtn").onclick=()=>doSkip("olmagan");
+$("susBtn").onclick=()=>doSkip("shubhali");
+$("txtBtn").onclick=doTxt;
+$("tgBtn").onclick=doShare;
+$("expBtn").onclick=doExp;
+$("impBtn").onclick=()=>$("file").click();
+$("file").onchange=e=>{if(e.target.files[0])doImp(e.target.files[0]);e.target.value=""};
+
+if(!IS_TOUCH)$("pick").focus();
+
+/* PWA: service worker (faqat https/localhost'da ishlaydi, file:// da jim o'tadi) */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register("sw.js");
+      reg.update().catch(()=>{});
+      // fonga o'tib qaytganda ham yangilanishni tekshirish
+      document.addEventListener("visibilitychange",()=>{
+        if(!document.hidden)reg.update().catch(()=>{});
+      });
+    }catch(e){}
+  });
+  // yangi versiya faollashsa — bir marta avtomatik qayta yuklash
+  // (birinchi tashrifda claim ham shu hodisani chaqiradi — unda reload kerak emas)
+  const hadController=!!navigator.serviceWorker.controller;
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(!hadController||reloaded)return; reloaded=true; location.reload();
+  });
+}
+</script>
+</body>
+</html>
